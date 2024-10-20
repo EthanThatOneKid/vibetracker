@@ -1,6 +1,25 @@
 // Modules to control application life and create native browser window
 const { app, BrowserWindow } = require("electron");
 const path = require("node:path");
+const { default: ActiveWindow } = require("@paymoapp/active-window");
+
+ActiveWindow.initialize();
+
+if (!ActiveWindow.requestPermissions()) {
+  console.log(
+    "Error: You need to grant screen recording permission in System Preferences > Security & Privacy > Privacy > Screen Recording"
+  );
+  process.exit(0);
+}
+
+setInterval(() => {
+  const activeWin = ActiveWindow.getActiveWindow();
+  console.log("Window title:", activeWin.title);
+  console.log("Application:", activeWin.application);
+  console.log("Application path:", activeWin.path);
+  console.log("Application PID:", activeWin.pid);
+  console.log;
+}, 1000);
 
 function createWindow() {
   // Create the browser window.

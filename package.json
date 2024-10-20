@@ -20,6 +20,7 @@
     "electron": "^33.0.1"
   },
   "dependencies": {
-    "@mediapipe/tasks-vision": "^0.10.17"
+    "@mediapipe/tasks-vision": "^0.10.17",
+    "@paymoapp/active-window": "^2.1.1"
   }
 }
