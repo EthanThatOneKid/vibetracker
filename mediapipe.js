@@ -123,3 +123,8 @@ async function predictWebcam() {
     window.requestAnimationFrame(predictWebcam);
   }
 }
+
+setTimeout(() => {
+  // Pass image data to capture.
+  window.electronAPI.incomingCapture("Hello world");
+}, 10_000);

@@ -1,47 +1,10 @@
 // Modules to control application life and create native browser window
-const { app, BrowserWindow } = require("electron");
+const { app, BrowserWindow, ipcMain } = require("electron");
 const path = require("node:path");
 const fs = require("node:fs");
 const axios = require("axios");
 const { default: ActiveWindow } = require("@paymoapp/active-window");
 const { HumeClient } = require("hume");
-
-const configString = fs.readFileSync("vibetracker.json", "utf8");
-const config = JSON.parse(configString);
-
-// https://doc.deno.land/https://esm.sh/hume
-const hume = new HumeClient({
-  apiKey: config.humeApiKey,
-  secretKey: config.humeApiSecret,
-});
-
-console.log({ hume });
-
-ActiveWindow.initialize();
-
-if (!ActiveWindow.requestPermissions()) {
-  console.log(
-    "Error: You need to grant screen recording permission in System Preferences > Security & Privacy > Privacy > Screen Recording"
-  );
-  process.exit(0);
-}
-
-setInterval(() => {
-  const activeWin = ActiveWindow.getActiveWindow();
-  console.log("Window title:", activeWin.title);
-  console.log("Application:", activeWin.application);
-  console.log("Application path:", activeWin.path);
-  console.log("Application PID:", activeWin.pid);
-}, 1000);
-
-axios
-  .get("https://jsonplaceholder.typicode.com/todos/1")
-  .then((response) => {
-    console.log(response.data); // Handle the response data
-  })
-  .catch((error) => {
-    console.error("Error making request:", error);
-  });
 
 function createWindow() {
   // Create the browser window.
@@ -51,6 +14,13 @@ function createWindow() {
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
     },
+  });
+
+  ipcMain.on("incoming-capture", (event, capture) => {
+    const webContents = event.sender;
+    const win = BrowserWindow.fromWebContents(webContents);
+    console.log({ capture, event, webContents, win });
+    // Add capture to queue for background batch processing.
   });
 
   // and load the index.html of the app.
@@ -69,7 +39,9 @@ app.whenReady().then(() => {
   app.on("activate", function () {
     // On macOS it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createWindow();
+    }
   });
 });
 
@@ -77,8 +49,47 @@ app.whenReady().then(() => {
 // for applications and their menu bar to stay active until the user quits
 // explicitly with Cmd + Q.
 app.on("window-all-closed", function () {
-  if (process.platform !== "darwin") app.quit();
+  if (process.platform !== "darwin") {
+    app.quit();
+  }
 });
 
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and require them here.
+
+// const configString = fs.readFileSync("vibetracker.json", "utf8");
+// const config = JSON.parse(configString);
+
+// // https://doc.deno.land/https://esm.sh/hume
+// const hume = new HumeClient({
+//   apiKey: config.humeApiKey,
+//   secretKey: config.humeApiSecret,
+// });
+
+// console.log({ hume });
+
+// ActiveWindow.initialize();
+
+// if (!ActiveWindow.requestPermissions()) {
+//   console.log(
+//     "Error: You need to grant screen recording permission in System Preferences > Security & Privacy > Privacy > Screen Recording"
+//   );
+//   process.exit(0);
+// }
+
+// setInterval(() => {
+//   const activeWin = ActiveWindow.getActiveWindow();
+//   console.log("Window title:", activeWin.title);
+//   console.log("Application:", activeWin.application);
+//   console.log("Application path:", activeWin.path);
+//   console.log("Application PID:", activeWin.pid);
+// }, 1000);
+
+// axios
+//   .get("https://jsonplaceholder.typicode.com/todos/1")
+//   .then((response) => {
+//     console.log(response.data); // Handle the response data
+//   })
+//   .catch((error) => {
+//     console.error("Error making request:", error);
+//   });

@@ -1,3 +1,5 @@
+const { contextBridge, ipcRenderer } = require("electron/renderer");
+
 /**
  * The preload script runs before `index.html` is loaded
  * in the renderer. It has access to web APIs as well as
@@ -15,4 +17,8 @@ window.addEventListener("DOMContentLoaded", () => {
   for (const type of ["chrome", "node", "electron"]) {
     replaceText(`${type}-version`, process.versions[type]);
   }
+});
+
+contextBridge.exposeInMainWorld("electronAPI", {
+  incomingCapture: (capture) => ipcRenderer.send("incoming-capture", capture),
 });
