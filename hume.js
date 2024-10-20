@@ -79,33 +79,33 @@ async function pollJob(jobID, sleep = 5e3) {
     await new Promise((resolve) => setTimeout(resolve, sleep));
 
     try {
-      const predictions =
+      const allPredictions =
         await humeClient.expressionMeasurement.batch.getJobPredictions(jobID);
-      const emotions = getTopNEmotions(predictions);
-      fs.writeFileSync("emotions.json", JSON.stringify(emotions, null, 2));
+
+      // Get the top N results per file prediction.
+      const filePredictions = allPredictions.map((filePrediction) => {
+        const resultsPredictions = filePrediction.results.predictions;
+        const facePredictions = resultsPredictions.flatMap(
+          (resultPrediction) => {
+            const groupedPredictions = resultPrediction.groupedPredictions;
+            return groupedPredictions.map((groupedPrediction) => {
+              const { emotion, score } = groupedPrediction;
+              return { emotion, score };
+            });
+          }
+        );
+
+        const topN = 3;
+        const emotions = facePredictions
+          .sort((a, b) => b.score - a.score)
+          .slice(0, topN);
+        return emotions;
+      });
       return emotions;
     } catch (error) {
       console.error("Failed to get predictions:", error);
     }
   }
-}
-
-/**
- * getTopNEmotions returns the top n emotions from the given data.
- */
-function getTopNEmotions(data, n = 3) {
-  return data.map((prediction) => {
-    fs.writeFileSync("prediction.json", JSON.stringify(prediction, null, 2));
-    throw new Error("Failed to get predictions");
-    return prediction.results.predictions.models?.face.groupedPredictions?.[0]?.map(
-      (groupedPrediction) => {
-        return {
-          emotion: groupedPrediction.emotion,
-          probability: groupedPrediction.probability,
-        };
-      }
-    );
-  });
 }
 
 function makeCreateJobURL(apiURL = HUME_API_URL) {
@@ -119,6 +119,5 @@ module.exports = {
   base64UriToBlob,
   pollJob,
   makeCreateJobURL,
-  getTopNEmotions,
   HUME_API_URL,
 };
