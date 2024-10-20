@@ -22,6 +22,8 @@ const demosSection = document.getElementById("demos");
 
 // Global variables.
 let slouchNotification;
+let webcamStartedAt;
+let slouchingMilliseconds = 0;
 let slouching = false;
 let poseLandmarker;
 let runningMode = "IMAGE";
@@ -37,6 +39,7 @@ function startCaptureIntervalIfNotStarted() {
     return;
   }
 
+  webcamStartedAt = Date.now();
   intervalID = setInterval(async () => {
     const capture = await captureVideoFrameAsDataURI(video);
     window.electronAPI.incomingCapture(capture);
@@ -162,6 +165,7 @@ async function predictWebcam() {
       const resultContainer = document.querySelector(".result");
       if (slouching) {
         resultContainer.innerText = "Not straight!";
+        slouchingMilliseconds;
         if (slouchNotification === undefined) {
           slouchNotification = new Notification("Unslouch", {
             body: "Sloucher!!!",

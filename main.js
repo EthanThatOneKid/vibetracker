@@ -4,6 +4,7 @@ const path = require("node:path");
 const fs = require("node:fs");
 const { default: ActiveWindow } = require("@paymoapp/active-window");
 const { createJob, pollJob, base64UriToBlob } = require("./hume.js");
+const { storeEmotion } = require("./emotion-history.js");
 
 let batch = [];
 
@@ -56,31 +57,14 @@ app.on("window-all-closed", function () {
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and require them here.
 
-// ActiveWindow.initialize();
+ActiveWindow.initialize();
 
-// if (!ActiveWindow.requestPermissions()) {
-//   console.log(
-//     "Error: You need to grant screen recording permission in System Preferences > Security & Privacy > Privacy > Screen Recording"
-//   );
-//   process.exit(0);
-// }
-
-// setInterval(() => {
-//   const activeWin = ActiveWindow.getActiveWindow();
-//   console.log("Window title:", activeWin.title);
-//   console.log("Application:", activeWin.application);
-//   console.log("Application path:", activeWin.path);
-//   console.log("Application PID:", activeWin.pid);
-// }, 1000);
-
-// axios
-//   .get("https://jsonplaceholder.typicode.com/todos/1")
-//   .then((response) => {
-//     console.log(response.data); // Handle the response data
-//   })
-//   .catch((error) => {
-//     console.error("Error making request:", error);
-//   });
+if (!ActiveWindow.requestPermissions()) {
+  console.log(
+    "Error: You need to grant screen recording permission in System Preferences > Security & Privacy > Privacy > Screen Recording"
+  );
+  process.exit(0);
+}
 
 async function addCaptureToQueue(capture, threshold = 10) {
   batch.push(capture);
@@ -98,8 +82,6 @@ async function sendBatchToHume() {
   console.log(`Sending ${data.length} captures to Hume!`);
   const humeJob = await createJob(data);
 
-  console.log({ humeJob });
-
   // stuck on poll
   const jobResult = await pollJob(humeJob.jobID);
 
@@ -108,16 +90,20 @@ async function sendBatchToHume() {
     .map((frameResults) => {
       return frameResults.flatMap((face) => {
         return face.emotions.map((emotion) => {
+          const activeWindow = ActiveWindow.getActiveWindow();
           return {
-            timestamp: frameResults.timestamp,
             emotion: emotion.name,
             score: emotion.score,
+            appID: activeWindow.application,
           };
         });
       });
     })
     .flat();
 
-  // console.log(JSON.stringify(jobResult, null, 2));
-  fs.writeFileSync("output.json", JSON.stringify(emotionsPerFrame, null, 2));
+  // TODO: Select emotion IDs to include and exclude, or alias.
+  for (const emotion of emotionsPerFrame) {
+    console.log({ emotion });
+    // storeEmotion(emotion);
+  }
 }
