@@ -30,7 +30,6 @@ async function createJob(
   }
 
   // Define the headers.
-  console.log({ apiKey });
   const headers = new Headers({
     "X-Hume-Api-Key": apiKey,
     accept: "application/json; charset=utf-8",
@@ -82,8 +81,9 @@ async function pollJob(jobID, sleep = 5e3) {
     try {
       const predictions =
         await humeClient.expressionMeasurement.batch.getJobPredictions(jobID);
-      console.log(JSON.stringify({ predictions })); // okkkkkkkkkkkkkkkkkkkkkkkkkkkkk
-      return predictions;
+      const emotions = getTopNEmotions(predictions);
+      fs.writeFileSync("emotions.json", JSON.stringify(emotions, null, 2));
+      return emotions;
     } catch (error) {
       console.error("Failed to get predictions:", error);
     }
@@ -94,36 +94,16 @@ async function pollJob(jobID, sleep = 5e3) {
  * getTopNEmotions returns the top n emotions from the given data.
  */
 function getTopNEmotions(data, n = 3) {
-  // Create an empty object to store the emotion counts
-  const emotionCounts = {};
-
-  // Iterate over each prediction in the data
-  for (const prediction of data) {
-    const predictions = prediction.results.predictions;
-    console.log({ predictions });
-    throw new Error("Not implemented");
-
-    // Access the emotions array for each prediction
-    const emotions =
-      predictions.models.face.groupedPredictions[0].predictions[0].emotions;
-
-    // Iterate over each emotion in the array
-    for (const emotion of emotions) {
-      // Increment the count for the current emotion in the emotionCounts object
-      emotionCounts[emotion.name] = (emotionCounts[emotion.name] || 0) + 1;
-    }
-  }
-
-  // Convert the emotionCounts object into an array of tuples
-  const emotionTuples = Object.entries(emotionCounts);
-
-  // Sort the array of tuples by the count in descending order
-  emotionTuples.sort((a, b) => b[1] - a[1]);
-
-  // Extract the top n emotions and their counts
-  const topNEmotions = emotionTuples.slice(0, n);
-
-  return topNEmotions;
+  return data.map((prediction) => {
+    return prediction.results.predictions?.[0].models.face.groupedPredictions.map(
+      (groupedPrediction) => {
+        return {
+          emotion: groupedPrediction.emotion,
+          probability: groupedPrediction.probability,
+        };
+      }
+    );
+  });
 }
 
 function makeCreateJobURL(apiURL = HUME_API_URL) {
