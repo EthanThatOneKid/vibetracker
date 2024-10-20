@@ -102,20 +102,22 @@ async function sendBatchToHume() {
 
   // stuck on poll
   const jobResult = await pollJob(humeJob.jobID);
-  console.log({ jobResult, jrLen: jobResult.length });
-  const emotionsPerFrame = jobResult.map((frameResult) => {
-    return getTopNEmotions(
-      frameResult.flatMap((data) => data.emotions),
-      3
-    );
-  });
-  // console.log(JSON.stringify(jobResult, null, 2));
-  fs.writeFileSync("output.json", JSON.stringify(jobResult, null, 2));
-}
 
-function getTopNEmotions(frameResult, n) {
-  const sortedEmotions = frameResult.emotions
-    .toSorted((a, b) => b.score - a.score)
-    .slice(0, n);
-  return sortedEmotions;
+  // console.log({ jobResult, jrLen: jobResult.length });
+  const emotionsPerFrame = jobResult
+    .map((frameResults) => {
+      return frameResults.flatMap((face) => {
+        return face.emotions.map((emotion) => {
+          return {
+            timestamp: frameResults.timestamp,
+            emotion: emotion.name,
+            score: emotion.score,
+          };
+        });
+      });
+    })
+    .flat();
+
+  // console.log(JSON.stringify(jobResult, null, 2));
+  fs.writeFileSync("output.json", JSON.stringify(emotionsPerFrame, null, 2));
 }
