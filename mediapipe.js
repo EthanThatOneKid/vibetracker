@@ -13,9 +13,9 @@
 // limitations under the License.
 
 import {
-  PoseLandmarker,
-  FilesetResolver,
   DrawingUtils,
+  FilesetResolver,
+  PoseLandmarker,
 } from "./node_modules/@mediapipe/tasks-vision/vision_bundle.mjs";
 
 const demosSection = document.getElementById("demos");
@@ -35,12 +35,8 @@ function startCaptureIntervalIfNotStarted() {
   }
 
   intervalID = setInterval(async () => {
-    console.log("Capturing frame...");
-    const capture = await captureVideoFrameAsDataURI(video).catch((err) => {
-      console.log({ err });
-      return null;
-    });
-    console.log({ capture });
+    const capture = await captureVideoFrameAsDataURI(video);
+    window.electronAPI.incomingCapture(capture);
   }, 1000);
 }
 
@@ -53,12 +49,9 @@ function captureVideoFrameAsDataURI(
   canvas.width = videoElement.videoWidth;
   canvas.height = videoElement.videoHeight;
   const context = canvas.getContext("2d");
-  console.log("Found me");
-
   return new Promise((resolve, reject) => {
     context.drawImage(videoElement, 0, 0);
     const dataURI = canvas.toDataURL(format, quality);
-    console.log({ dataURI });
     resolve(dataURI);
   });
 }

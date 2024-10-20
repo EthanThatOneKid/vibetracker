@@ -1,10 +1,10 @@
 // Modules to control application life and create native browser window
 const { app, BrowserWindow, ipcMain } = require("electron");
 const path = require("node:path");
-const fs = require("node:fs");
-const axios = require("axios");
 const { default: ActiveWindow } = require("@paymoapp/active-window");
-const { HumeClient } = require("hume");
+const { createJob, pollJob } = require("./hume.js");
+
+let batch = [];
 
 function createWindow() {
   // Create the browser window.
@@ -16,11 +16,9 @@ function createWindow() {
     },
   });
 
-  ipcMain.on("incoming-capture", (event, capture) => {
-    const webContents = event.sender;
-    const win = BrowserWindow.fromWebContents(webContents);
-    console.log({ capture, event, webContents, win });
-    // Add capture to queue for background batch processing.
+  // https://www.electronjs.org/docs/latest/tutorial/ipc#pattern-1-renderer-to-main-one-way
+  ipcMain.on("incoming-capture", async (_event, capture) => {
+    await addCaptureToQueue(capture);
   });
 
   // and load the index.html of the app.
@@ -57,17 +55,6 @@ app.on("window-all-closed", function () {
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and require them here.
 
-// const configString = fs.readFileSync("vibetracker.json", "utf8");
-// const config = JSON.parse(configString);
-
-// // https://doc.deno.land/https://esm.sh/hume
-// const hume = new HumeClient({
-//   apiKey: config.humeApiKey,
-//   secretKey: config.humeApiSecret,
-// });
-
-// console.log({ hume });
-
 // ActiveWindow.initialize();
 
 // if (!ActiveWindow.requestPermissions()) {
@@ -93,3 +80,24 @@ app.on("window-all-closed", function () {
 //   .catch((error) => {
 //     console.error("Error making request:", error);
 //   });
+
+async function addCaptureToQueue(capture, threshold = 10) {
+  batch.push(capture);
+
+  if (batch.length >= threshold) {
+    console.log("Batch is full, sending to Hume");
+    await sendBatchToHume();
+  }
+}
+
+async function sendBatchToHume() {
+  const data = batch.map((capture) => base64UriToBlob(capture));
+  batch = [];
+
+  console.log(`Sending ${data.length} captures to Hume`);
+  const humeJob = await createJob(data, config.humeApiKey);
+  console.log({ humeJob });
+
+  const result = await pollJob(humeJob.jobID);
+  console.log(JSON.stringify(result, null, 2));
+}
