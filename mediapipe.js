@@ -20,6 +20,9 @@ import {
 
 const demosSection = document.getElementById("demos");
 
+// Global variables.
+let slouchNotification;
+let slouching = false;
 let poseLandmarker;
 let runningMode = "IMAGE";
 let enableWebcamButton;
@@ -132,10 +135,46 @@ async function predictWebcam() {
     runningMode = "VIDEO";
     await poseLandmarker.setOptions({ runningMode: "VIDEO" });
   }
+
   let startTimeMs = performance.now();
   if (lastVideoTime !== video.currentTime) {
     lastVideoTime = video.currentTime;
     poseLandmarker.detectForVideo(video, startTimeMs, (result) => {
+      if (result.landmarks.length === 0) {
+        return;
+      }
+
+      const landmark = result.landmarks[0];
+      if (landmark === undefined) {
+        return;
+      }
+
+      // https://www.linkedin.com/pulse/daily-life-example-human-pose-estimation-serkan-erdonmez/
+      const leftShoulder = result.landmarks[0][11];
+      const rightShoulder = result.landmarks[0][12];
+      const shoulderHeight = (leftShoulder.y + rightShoulder.y) * 0.5;
+
+      const nose = result.landmarks[0][0];
+      const noseToShoulderDistance = Math.abs(nose.y - shoulderHeight);
+
+      updateSlouching(noseToShoulderDistance, 0.2, 1e3);
+      console.log(noseToShoulderDistance);
+      const resultContainer = document.querySelector(".result");
+      if (slouching) {
+        resultContainer.innerText = "Not straight!";
+        if (slouchNotification === undefined) {
+          slouchNotification = new Notification("Unslouch", {
+            body: "Sloucher!!!",
+          });
+        }
+      } else {
+        resultContainer.innerText = "Good!";
+        if (slouchNotification !== undefined) {
+          slouchNotification.close();
+          slouchNotification = undefined;
+        }
+      }
+
       canvasCtx.save();
       canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
       for (const landmark of result.landmarks) {
@@ -152,4 +191,21 @@ async function predictWebcam() {
   if (webcamRunning === true) {
     window.requestAnimationFrame(predictWebcam);
   }
+}
+
+function debounce(fn, delay) {
+  let timeoutId;
+  return function (...args) {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => fn(...args), delay);
+  };
+}
+
+function updateSlouching(value, threshold, debounceDuration) {
+  const debouncedUpdateFlag = debounce(
+    () => (slouching = value <= threshold),
+    debounceDuration
+  );
+
+  debouncedUpdateFlag(value);
 }
