@@ -1,8 +1,21 @@
 // Modules to control application life and create native browser window
 const { app, BrowserWindow } = require("electron");
 const path = require("node:path");
+const fs = require("node:fs");
 const axios = require("axios");
 const { default: ActiveWindow } = require("@paymoapp/active-window");
+const { HumeClient } = require("hume");
+
+const configString = fs.readFileSync("vibetracker.json", "utf8");
+const config = JSON.parse(configString);
+
+// https://doc.deno.land/https://esm.sh/hume
+const hume = new HumeClient({
+  apiKey: config.humeApiKey,
+  secretKey: config.humeApiSecret,
+});
+
+console.log({ hume });
 
 ActiveWindow.initialize();
 
