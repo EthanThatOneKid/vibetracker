@@ -42,10 +42,8 @@ async function createJob(
     headers,
     body: formData,
   });
-  console.log({ response });
   if (response.ok) {
     const data = await response.json();
-    console.log({ data });
     return { jobID: data.job_id };
   }
 
@@ -81,31 +79,31 @@ async function pollJob(jobID, sleep = 5e3) {
     try {
       const allPredictions =
         await humeClient.expressionMeasurement.batch.getJobPredictions(jobID);
-
-      // Get the top N results per file prediction.
-      const filePredictions = allPredictions.map((filePrediction) => {
-        const resultsPredictions = filePrediction.results.predictions;
-        const facePredictions = resultsPredictions.flatMap(
-          (resultPrediction) => {
-            const groupedPredictions = resultPrediction.groupedPredictions;
-            return groupedPredictions.map((groupedPrediction) => {
-              const { emotion, score } = groupedPrediction;
-              return { emotion, score };
-            });
-          }
-        );
-
-        const topN = 3;
-        const emotions = facePredictions
-          .sort((a, b) => b.score - a.score)
-          .slice(0, topN);
-        return emotions;
-      });
-      return emotions;
+      return allPredictions.map((p) => extractEmotions(p));
     } catch (error) {
       console.error("Failed to get predictions:", error);
     }
   }
+}
+
+function extractEmotions(data) {
+  const emotions = [];
+
+  data.results.predictions.forEach((prediction) => {
+    prediction.models.face.groupedPredictions.forEach((group) => {
+      group.predictions.forEach((frame) => {
+        emotions.push({
+          timestamp: frame.time,
+          emotions: frame.emotions.map((emotion) => ({
+            name: emotion.name,
+            score: emotion.score,
+          })),
+        });
+      });
+    });
+  });
+
+  return emotions;
 }
 
 function makeCreateJobURL(apiURL = HUME_API_URL) {

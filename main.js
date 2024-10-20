@@ -1,6 +1,7 @@
 // Modules to control application life and create native browser window
 const { app, BrowserWindow, ipcMain } = require("electron");
 const path = require("node:path");
+const fs = require("node:fs");
 const { default: ActiveWindow } = require("@paymoapp/active-window");
 const {
   createJob,
@@ -106,8 +107,7 @@ async function sendBatchToHume() {
 
   // stuck on poll
   const jobResult = await pollJob(humeJob.jobID);
-  console.log(JSON.stringify(jobResult, null, 2));
-
-  const emotionResult = getTopNEmotions(jobResult);
-  console.log(JSON.stringify(emotionResult, null, 2));
+  console.log({ jobResult });
+  // console.log(JSON.stringify(jobResult, null, 2));
+  fs.writeFileSync("output.json", JSON.stringify(jobResult, null, 2));
 }
