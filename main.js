@@ -1,6 +1,7 @@
 // Modules to control application life and create native browser window
 const { app, BrowserWindow } = require("electron");
 const path = require("node:path");
+const axios = require("axios");
 const { default: ActiveWindow } = require("@paymoapp/active-window");
 
 ActiveWindow.initialize();
@@ -18,8 +19,16 @@ setInterval(() => {
   console.log("Application:", activeWin.application);
   console.log("Application path:", activeWin.path);
   console.log("Application PID:", activeWin.pid);
-  console.log;
 }, 1000);
+
+axios
+  .get("https://jsonplaceholder.typicode.com/todos/1")
+  .then((response) => {
+    console.log(response.data); // Handle the response data
+  })
+  .catch((error) => {
+    console.error("Error making request:", error);
+  });
 
 function createWindow() {
   // Create the browser window.
