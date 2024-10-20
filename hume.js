@@ -95,7 +95,9 @@ async function pollJob(jobID, sleep = 5e3) {
  */
 function getTopNEmotions(data, n = 3) {
   return data.map((prediction) => {
-    return prediction.results.predictions?.[0].models.face.groupedPredictions.map(
+    fs.writeFileSync("prediction.json", JSON.stringify(prediction, null, 2));
+    throw new Error("Failed to get predictions");
+    return prediction.results.predictions.models?.face.groupedPredictions?.[0]?.map(
       (groupedPrediction) => {
         return {
           emotion: groupedPrediction.emotion,
