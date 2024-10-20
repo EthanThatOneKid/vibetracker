@@ -5,7 +5,7 @@ const configString = fs.readFileSync("vibetracker.json", "utf8");
 const config = JSON.parse(configString);
 
 // https://doc.deno.land/https://esm.sh/hume
-const hume = new HumeClient({
+const humeClient = new HumeClient({
   apiKey: config.humeApiKey,
   secretKey: config.humeApiSecret,
 });
@@ -30,6 +30,7 @@ async function createJob(
   }
 
   // Define the headers.
+  console.log({ apiKey });
   const headers = new Headers({
     "X-Hume-Api-Key": apiKey,
     accept: "application/json; charset=utf-8",
@@ -42,8 +43,10 @@ async function createJob(
     headers,
     body: formData,
   });
+  console.log({ response });
   if (response.ok) {
     const data = await response.json();
+    console.log({ data });
     return { jobID: data.job_id };
   }
 
@@ -72,14 +75,18 @@ function base64UriToBlob(base64Uri) {
 /**
  * pollJob polls the Hume API for the predictions of a job.
  */
-async function pollJob(jobID) {
+async function pollJob(jobID, sleep = 5e3) {
   while (true) {
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, sleep));
+
     try {
       const predictions =
-        await hume.expressionMeasurement.batch.getJobPredictions(jobID);
+        await humeClient.expressionMeasurement.batch.getJobPredictions(jobID);
+      console.log(JSON.stringify({ predictions })); // okkkkkkkkkkkkkkkkkkkkkkkkkkkkk
       return predictions;
-    } catch (error) {}
+    } catch (error) {
+      console.error("Failed to get predictions:", error);
+    }
   }
 }
 
@@ -92,24 +99,13 @@ function getTopNEmotions(data, n = 3) {
 
   // Iterate over each prediction in the data
   for (const prediction of data) {
-    console.log({ prediction });
-    // {
-    //   prediction: {
-    //     source: {
-    //       type: 'file',
-    //       filename: 'blob',
-    //       contentType: 'image/png',
-    //       md5Sum: '3ea8d8ec998fd97bd4a8e68d927e9a2e'
-    //     },
-    //     results: { predictions: [Array], errors: [] }
-    //   }
-    // }
-    throw new Error("stop");
+    const predictions = prediction.results.predictions;
+    console.log({ predictions });
+    throw new Error("Not implemented");
 
     // Access the emotions array for each prediction
     const emotions =
-      prediction.results.predictions[0].models.face.groupedPredictions[0]
-        .predictions[0].emotions;
+      predictions.models.face.groupedPredictions[0].predictions[0].emotions;
 
     // Iterate over each emotion in the array
     for (const emotion of emotions) {

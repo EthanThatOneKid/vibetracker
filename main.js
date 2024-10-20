@@ -99,9 +99,15 @@ async function sendBatchToHume() {
   const data = batch.map((capture) => base64UriToBlob(capture));
   batch = [];
 
-  console.log(`Sending ${data.length} captures to Hume`);
+  console.log(`Sending ${data.length} captures to Hume!`);
   const humeJob = await createJob(data);
 
-  const result = getTopNEmotions(await pollJob(humeJob.jobID));
-  console.log(JSON.stringify(result, null, 2));
+  console.log({ humeJob });
+
+  // stuck on poll
+  const jobResult = await pollJob(humeJob.jobID);
+  console.log(JSON.stringify(jobResult, null, 2));
+
+  const emotionResult = getTopNEmotions(jobResult);
+  console.log(JSON.stringify(emotionResult, null, 2));
 }
