@@ -13,7 +13,11 @@ const hume = new HumeClient({
 /**
  * createJob creates a new Hume job with the given blobs.
  */
-async function createJob(blobs, apiKey, apiURL = HUME_API_URL) {
+async function createJob(
+  blobs,
+  apiKey = config.humeApiKey,
+  apiURL = HUME_API_URL
+) {
   // Create a FormData object.
   const formData = new FormData();
 
@@ -79,6 +83,53 @@ async function pollJob(jobID) {
   }
 }
 
+/**
+ * getTopNEmotions returns the top n emotions from the given data.
+ */
+function getTopNEmotions(data, n = 3) {
+  // Create an empty object to store the emotion counts
+  const emotionCounts = {};
+
+  // Iterate over each prediction in the data
+  for (const prediction of data) {
+    console.log({ prediction });
+    // {
+    //   prediction: {
+    //     source: {
+    //       type: 'file',
+    //       filename: 'blob',
+    //       contentType: 'image/png',
+    //       md5Sum: '3ea8d8ec998fd97bd4a8e68d927e9a2e'
+    //     },
+    //     results: { predictions: [Array], errors: [] }
+    //   }
+    // }
+    throw new Error("stop");
+
+    // Access the emotions array for each prediction
+    const emotions =
+      prediction.results.predictions[0].models.face.groupedPredictions[0]
+        .predictions[0].emotions;
+
+    // Iterate over each emotion in the array
+    for (const emotion of emotions) {
+      // Increment the count for the current emotion in the emotionCounts object
+      emotionCounts[emotion.name] = (emotionCounts[emotion.name] || 0) + 1;
+    }
+  }
+
+  // Convert the emotionCounts object into an array of tuples
+  const emotionTuples = Object.entries(emotionCounts);
+
+  // Sort the array of tuples by the count in descending order
+  emotionTuples.sort((a, b) => b[1] - a[1]);
+
+  // Extract the top n emotions and their counts
+  const topNEmotions = emotionTuples.slice(0, n);
+
+  return topNEmotions;
+}
+
 function makeCreateJobURL(apiURL = HUME_API_URL) {
   return `${apiURL}/batch/jobs`;
 }
@@ -90,5 +141,6 @@ module.exports = {
   base64UriToBlob,
   pollJob,
   makeCreateJobURL,
+  getTopNEmotions,
   HUME_API_URL,
 };

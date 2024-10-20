@@ -2,7 +2,12 @@
 const { app, BrowserWindow, ipcMain } = require("electron");
 const path = require("node:path");
 const { default: ActiveWindow } = require("@paymoapp/active-window");
-const { createJob, pollJob } = require("./hume.js");
+const {
+  createJob,
+  pollJob,
+  base64UriToBlob,
+  getTopNEmotions,
+} = require("./hume.js");
 
 let batch = [];
 
@@ -95,9 +100,8 @@ async function sendBatchToHume() {
   batch = [];
 
   console.log(`Sending ${data.length} captures to Hume`);
-  const humeJob = await createJob(data, config.humeApiKey);
-  console.log({ humeJob });
+  const humeJob = await createJob(data);
 
-  const result = await pollJob(humeJob.jobID);
+  const result = getTopNEmotions(await pollJob(humeJob.jobID));
   console.log(JSON.stringify(result, null, 2));
 }
