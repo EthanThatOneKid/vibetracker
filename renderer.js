@@ -5,3 +5,15 @@
  * `contextIsolation` is turned on. Use the contextBridge API in `preload.js`
  * to expose Node.js functionality from the main process.
  */
+
+navigator.mediaDevices
+  .getUserMedia({ video: true, audio: false })
+  .then((localMediaStream) => {
+    const video = document.createElement("video");
+    video.srcObject = localMediaStream;
+    video.play();
+    document.body.appendChild(video);
+  })
+  .catch((error) => {
+    console.error("Error accessing media devices.", error);
+  });
