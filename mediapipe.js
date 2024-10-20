@@ -27,6 +27,42 @@ let webcamRunning = false;
 const videoHeight = "360px";
 const videoWidth = "480px";
 
+let intervalID;
+
+function startCaptureIntervalIfNotStarted() {
+  if (intervalID !== undefined) {
+    return;
+  }
+
+  intervalID = setInterval(async () => {
+    console.log("Capturing frame...");
+    const capture = await captureVideoFrameAsDataURI(video).catch((err) => {
+      console.log({ err });
+      return null;
+    });
+    console.log({ capture });
+  }, 1000);
+}
+
+function captureVideoFrameAsDataURI(
+  videoElement,
+  format = "image/png",
+  quality = 1.0
+) {
+  const canvas = document.createElement("canvas");
+  canvas.width = videoElement.videoWidth;
+  canvas.height = videoElement.videoHeight;
+  const context = canvas.getContext("2d");
+  console.log("Found me");
+
+  return new Promise((resolve, reject) => {
+    context.drawImage(videoElement, 0, 0);
+    const dataURI = canvas.toDataURL(format, quality);
+    console.log({ dataURI });
+    resolve(dataURI);
+  });
+}
+
 // Before we can use PoseLandmarker class we must wait for it to finish
 // loading. Machine Learning models can be large and take a moment to
 // get everything needed to run.
@@ -88,6 +124,7 @@ function enableCam(_event) {
     .then((stream) => {
       video.srcObject = stream;
       video.addEventListener("loadeddata", predictWebcam);
+      startCaptureIntervalIfNotStarted();
     });
 }
 
@@ -123,8 +160,3 @@ async function predictWebcam() {
     window.requestAnimationFrame(predictWebcam);
   }
 }
-
-setTimeout(() => {
-  // Pass image data to capture.
-  window.electronAPI.incomingCapture("Hello world");
-}, 10_000);
