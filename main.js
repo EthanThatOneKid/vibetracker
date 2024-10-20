@@ -3,12 +3,7 @@ const { app, BrowserWindow, ipcMain } = require("electron");
 const path = require("node:path");
 const fs = require("node:fs");
 const { default: ActiveWindow } = require("@paymoapp/active-window");
-const {
-  createJob,
-  pollJob,
-  base64UriToBlob,
-  getTopNEmotions,
-} = require("./hume.js");
+const { createJob, pollJob, base64UriToBlob } = require("./hume.js");
 
 let batch = [];
 
@@ -107,7 +102,20 @@ async function sendBatchToHume() {
 
   // stuck on poll
   const jobResult = await pollJob(humeJob.jobID);
-  console.log({ jobResult });
+  console.log({ jobResult, jrLen: jobResult.length });
+  const emotionsPerFrame = jobResult.map((frameResult) => {
+    return getTopNEmotions(
+      frameResult.flatMap((data) => data.emotions),
+      3
+    );
+  });
   // console.log(JSON.stringify(jobResult, null, 2));
   fs.writeFileSync("output.json", JSON.stringify(jobResult, null, 2));
+}
+
+function getTopNEmotions(frameResult, n) {
+  const sortedEmotions = frameResult.emotions
+    .toSorted((a, b) => b.score - a.score)
+    .slice(0, n);
+  return sortedEmotions;
 }
